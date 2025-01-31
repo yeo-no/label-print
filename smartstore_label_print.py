@@ -31,7 +31,7 @@ def wrap_text_by_width(pdf, text, max_width):
 # -----------------------------------------------------------------------------
 # 말줄임표 처리, 최대 줄 제한 함수
 # -----------------------------------------------------------------------------
-def wrap_text_by_width_with_limit(pdf, text, max_width, max_lines=2):
+def wrap_text_by_width_with_limit(pdf, text, max_width, max_lines=4):
     words = text.split()
     lines = []
     current_line = ""
@@ -81,10 +81,12 @@ def print_hanging_text_with_limit(pdf, x, y, max_width, prefix, text, line_heigh
 
     pdf.cell(prefix_w, line_height, prefix, border=0, ln=0)
     pdf.cell(indent_width, line_height, first_line, border=0, ln=1)
+    pdf.cell(0, 1, '', ln=1)  # 1mm 여백 추가
 
     for line in lines[1:]:
         pdf.set_x(x + prefix_w)
         pdf.cell(indent_width, line_height, line, border=0, ln=1)
+        pdf.cell(0, 1, '', ln=1)  # 1mm 여백 추가
 
     return pdf.get_y()
 
@@ -126,17 +128,17 @@ def generate_label_pdf(input_excel, output_pdf, row_count, font_size):
 
     # 라벨 배치 옵션
     labels_per_row = 2
-    margin_x = 8
-    margin_y = 5
-    start_x = margin_x
-    start_y = margin_y
+    margin_x = 0
+    margin_y = 0
+    start_x = 5
+    start_y = 5
     internal_margin = 3
     line_height = 5
     page_height = 297 - margin_y  # A4 세로 크기에서 약간의 여백
 
     # row_count를 사용해 라벨 높이 추정
     label_height = (page_height / row_count) - margin_y  
-    label_width = 90  # 라벨 폭(고정)
+    label_width = 100  # 라벨 폭(고정)
 
     x = start_x
     y = start_y
@@ -171,28 +173,32 @@ def generate_label_pdf(input_excel, output_pdf, row_count, font_size):
         curr_y = print_hanging_text_with_limit(
             pdf=pdf,
             x=text_x,
-            y=pdf.get_y(),
+            y=pdf.get_y() + 2,
             max_width=text_width,
             prefix="상품명: ",
             text=product_name,
             line_height=line_height,
-            max_lines=2
+            max_lines=4
         )
+        # 상품명 아래 1mm 여백 추가
+        pdf.cell(0, 1, '', ln=1)
 
         # 옵션정보
         if option_info:
             curr_y = print_hanging_text_with_limit(
                 pdf=pdf,
                 x=text_x,
-                y=curr_y,
+                y=curr_y + 2,  # 2mm 여백을 추가하기 위해 Y 좌표 조정
                 max_width=text_width,
                 prefix="옵션정보: ",
                 text=option_info,
                 line_height=line_height,
-                max_lines=2
+                max_lines=4
             )
-
+            # 옵션정보 아래 1mm 여백 추가
+            pdf.cell(0, 1, '', ln=1)
         # 수량
+        pdf.cell(0, 1, '', ln=1)
         pdf.set_xy(text_x, curr_y)
         pdf.cell(text_width, line_height, f"수량: {quantity}", border=0, ln=1)
 
@@ -238,9 +244,9 @@ class DualInputDialog(tk.Toplevel):
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
 
-        tk.Label(self, text="Row Count (default: 7)", font=("맑은 고딕", 9), anchor='w').grid(
+        tk.Label(self, text="Row Count (default: 5)", font=("맑은 고딕", 9), anchor='w').grid(
             row=0, column=0, sticky='w', padx=10, pady=10)
-        tk.Label(self, text="Font Size (default: 10)", font=("맑은 고딕", 9), anchor='w').grid(
+        tk.Label(self, text="Font Size (default: 15)", font=("맑은 고딕", 9), anchor='w').grid(
             row=1, column=0, sticky='w', padx=10, pady=10)
 
         self.row_count_var = tk.StringVar()
@@ -260,8 +266,8 @@ class DualInputDialog(tk.Toplevel):
     def on_confirm(self):
         try:
             # 사용자가 입력하지 않은 경우 기본값 설정
-            row_count = int(self.row_count_var.get().strip()) if self.row_count_var.get().strip() else 7
-            font_size = int(self.font_size_var.get().strip()) if self.font_size_var.get().strip() else 10
+            row_count = int(self.row_count_var.get().strip()) if self.row_count_var.get().strip() else 5
+            font_size = int(self.font_size_var.get().strip()) if self.font_size_var.get().strip() else 15
         except:
             messagebox.showerror("입력 오류", "정수 형태로 입력하세요.")
             return
